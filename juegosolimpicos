@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Pasapalabra Olímpico - 2º ESO</title>
+    <style>
+        :root { --azul: #004687; --verde: #4CAF50; --rojo: #F44336; --amarillo: #FFC107; --gris: #3a4750; }
+        body { font-family: 'Arial', sans-serif; background: #f0f2f5; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
+        .game-container { position: relative; width: 600px; height: 600px; margin-top: 20px; }
+        #rosco { position: relative; width: 100%; height: 100%; list-style: none; padding: 0; }
+        .letra { 
+            position: absolute; width: 45px; height: 45px; background: var(--azul); 
+            border: 3px solid white; border-radius: 50%; display: flex; align-items: center; 
+            justify-content: center; color: white; font-weight: bold; font-size: 1.2rem;
+            transition: all 0.4s; box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        .panel-central {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 320px; text-align: center; background: white; padding: 25px;
+            border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        .pregunta-texto { font-size: 1.1rem; color: #333; margin-bottom: 20px; min-height: 80px; line-height: 1.4; }
+        input { width: 80%; padding: 12px; border: 2px solid #ddd; border-radius: 10px; font-size: 1rem; text-align: center; outline: none; margin-bottom: 15px; }
+        .botones { display: flex; gap: 10px; justify-content: center; }
+        button { padding: 10px 15px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; color: white; }
+        .btn-enviar { background: var(--verde); }
+        .btn-pasar { background: var(--amarillo); color: #333; }
+        .correcto { background: var(--verde) !important; }
+        .incorrecto { background: var(--rojo) !important; }
+        .activa { transform: scale(1.3); box-shadow: 0 0 15px var(--azul); z-index: 10; border-color: #ffd700; }
+        #feedback { font-weight: bold; height: 20px; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+    <h1 style="color: var(--azul)">🏆 EL ROSCO OLÍMPICO</h1>
+
+    <div class="game-container">
+        <ul id="rosco"></ul>
+        <div class="panel-central" id="panel">
+            <div id="letra-grande" style="font-size: 2rem; color: var(--azul); font-weight: bold;">A</div>
+            <div class="pregunta-texto" id="definicion">Cargando...</div>
+            <input type="text" id="respuesta-user" placeholder="Respuesta..." autocomplete="off">
+            <div class="botones">
+                <button class="btn-enviar" onclick="comprobar()">ENVIAR</button>
+                <button class="btn-pasar" onclick="pasapalabra()">PASAPALABRA</button>
+            </div>
+            <div id="feedback"></div>
+        </div>
+    </div>
+
+<script>
+    const preguntasOriginales = [
+        { l: 'A', r: 'atleta', d: 'Con la A: Persona que competía en las pruebas físicas para alcanzar la gloria.', estado: 'pendiente' },
+        { l: 'B', r: 'biga', d: 'Con la B: Carro tirado por dos caballos.', estado: 'pendiente' },
+        { l: 'C', r: 'corona', d: 'Con la C: Premio de olivo silvestre que recibía el vencedor.', estado: 'pendiente' },
+        { l: 'D', r: 'disco', d: 'Con la D: Objeto circular y pesado que se lanzaba.', estado: 'pendiente' },
+        { l: 'E', r: 'estadio', d: 'Con la E: Recinto donde se corrían las pruebas a pie.', estado: 'pendiente' },
+        { l: 'F', r: 'filipo', d: 'Con la F: Nombre del rey de Macedonia que ganó en las carreras de caballos.', estado: 'pendiente' },
+        { l: 'G', r: 'gimnasio', d: 'Con la G: Lugar de entrenamiento físico y mental.', estado: 'pendiente' },
+        { l: 'H', r: 'hoplitodromia', d: 'Con la H: Carrera donde se corría con armadura y escudo.', estado: 'pendiente' },
+        { l: 'I', r: 'istmo', d: 'Con la I: Lugar donde se celebraban juegos en honor a Poseidón.', estado: 'pendiente' },
+        { l: 'J', r: 'jabalina', d: 'Con la J: Lanza que se arrojaba para medir la distancia.', estado: 'pendiente' },
+        { l: 'K', r: 'kotinos', d: 'Con la K: Nombre griego de la corona de olivo.', estado: 'pendiente' },
+        { l: 'L', r: 'lucha', d: 'Con la L: Deporte cuyo fin era derribar al oponente.', estado: 'pendiente' },
+        { l: 'M', r: 'milon', d: 'Con la M: Nombre del luchador más famoso de la antigüedad.', estado: 'pendiente' },
+        { l: 'N', r: 'nemeos', d: 'Con la N: Juegos celebrados en Nemea en honor a Hércules.', estado: 'pendiente' },
+        { l: 'O', r: 'olimpia', d: 'Con la O: Ciudad sede de los juegos más importantes.', estado: 'pendiente' },
+        { l: 'P', r: 'pancracio', d: 'Con la P: Disciplina que mezclaba boxeo y lucha casi sin reglas.', estado: 'pendiente' },
+        { l: 'Q', r: 'cuadriga', d: 'Contiene la Q: Carro tirado por cuatro caballos.', estado: 'pendiente' },
+        { l: 'R', r: 'recompensa', d: 'Con la R: Lo que recibía el héroe al volver (comida gratis, estatuas...).', estado: 'pendiente' },
+        { l: 'S', r: 'salto', d: 'Con la S: Especialidad de longitud donde usaban pesas.', estado: 'pendiente' },
+        { l: 'T', r: 'tregua', d: 'Con la T: Periodo de paz obligatoria durante los juegos.', estado: 'pendiente' },
+        { l: 'U', r: 'zeus', d: 'Contiene la U: Dios principal a quien se dedicaban los juegos.', estado: 'pendiente' },
+        { l: 'V', r: 'victoria', d: 'Con la V: El único resultado que importaba (Niké).', estado: 'pendiente' },
+        { l: 'X', r: 'boxeo', d: 'Contiene la X: Deporte de golpear con los puños vendados.', estado: 'pendiente' },
+        { l: 'Z', r: 'zeus', d: 'Con la Z: Dios soberano con una estatua gigante en su templo.', estado: 'pendiente' }
+    ];
+
+    let indice = 0;
+    const total = preguntasOriginales.length;
+
+    function crearRosco() {
+        const contenedor = document.getElementById('rosco');
+        preguntasOriginales.forEach((p, i) => {
+            const li = document.createElement('li');
+            li.className = 'letra';
+            li.id = 'letra-' + i;
+            li.innerText = p.l;
+            const angulo = (i * (360 / total) - 90) * (Math.PI / 180);
+            li.style.left = (300 + 250 * Math.cos(angulo) - 22) + 'px';
+            li.style.top = (300 + 250 * Math.sin(angulo) - 22) + 'px';
+            contenedor.appendChild(li);
+        });
+        mostrarSiguientePendiente();
+    }
+
+    function mostrarSiguientePendiente() {
+        const pendientes = preguntasOriginales.filter(p => p.estado === 'pendiente');
+        if (pendientes.length === 0) return finalizar();
+
+        while (preguntasOriginales[indice].estado !== 'pendiente') {
+            indice = (indice + 1) % total;
+        }
+
+        document.querySelectorAll('.letra').forEach(l => l.classList.remove('activa'));
+        document.getElementById('letra-' + indice).classList.add('activa');
+        document.getElementById('letra-grande').innerText = preguntasOriginales[indice].l;
+        document.getElementById('definicion').innerText = preguntasOriginales[indice].d;
+        document.getElementById('respuesta-user').value = '';
+        document.getElementById('respuesta-user').focus();
+    }
+
+    function comprobar() {
+        const input = document.getElementById('respuesta-user');
+        const userAns = input.value.toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        const correctAns = preguntasOriginales[indice].r.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        const bola = document.getElementById('letra-' + indice);
+
+        if (userAns === "") return;
+
+        if (userAns === correctAns) {
+            preguntasOriginales[indice].estado = 'acierto';
+            bola.classList.add('correcto');
+        } else {
+            preguntasOriginales[indice].estado = 'fallo';
+            bola.classList.add('incorrecto');
+        }
+        
+        avanzar();
+    }
+
+    function pasapalabra() {
+        indice = (indice + 1) % total;
+        mostrarSiguientePendiente();
+    }
+
+    function avanzar() {
+        if (preguntasOriginales.every(p => p.estado !== 'pendiente')) {
+            finalizar();
+        } else {
+            pasapalabra();
+        }
+    }
+
+    function finalizar() {
+        const aciertos = preguntasOriginales.filter(p => p.estado === 'acierto').length;
+        document.getElementById('panel').innerHTML = `<h2>Fin del Juego</h2><p>Aciertos: ${aciertos}</p><button onclick="location.reload()">REINTENTAR</button>`;
+    }
+
+    document.getElementById("respuesta-user").addEventListener("keyup", e => {
+        if (e.key === "Enter") comprobar();
+        if (e.key === " ") { e.preventDefault(); pasapalabra(); }
+    });
+
+    crearRosco();
+</script>
+</body>
+</html>
+   
